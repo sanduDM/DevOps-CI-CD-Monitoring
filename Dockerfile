@@ -1,4 +1,5 @@
 FROM node:20-alpine
+LABEL org.opencontainers.image.source="https://github.com/sanduDM/DevOps-CI-CD-Monitoring"
 WORKDIR /usr/src/app
 
 # Copy dependency files first so Docker can cache this layer
