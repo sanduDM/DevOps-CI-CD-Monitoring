@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     env:
-      IMAGE: ghcr.io/sandudm/devops-ci-cd-monitoring
+      IMAGE: ghcr.io/sandudm/devops-cicd-monitoring-app
       TAG: ${{ github.ref_name == 'main' && 'latest' || 'staging' }}
     steps:
       - name: Checkout code
