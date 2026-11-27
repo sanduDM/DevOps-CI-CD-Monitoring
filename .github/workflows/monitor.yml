@@ -1,0 +1,16 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production
+        run: curl --fail --max-time 10 http://${{ secrets.EC2_HOST }}:3000/live
+
+      - name: Check staging
+        run: curl --fail --max-time 10 http://${{ secrets.EC2_HOST }}:3001/live

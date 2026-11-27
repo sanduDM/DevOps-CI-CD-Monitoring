@@ -14,4 +14,5 @@ EXPOSE 3000
 
 # Run as a non-root user (safer)
 USER node
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://localhost:3000/live || exit 1
 CMD ["npm", "start"]

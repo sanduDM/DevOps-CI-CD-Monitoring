@@ -1,4 +1,4 @@
-name: Publish Docker Image
+name: Publish and Deploy
 
 on:
   push:
@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   publish:
+    name: Publish Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -38,3 +39,47 @@ jobs:
           tags: |
             ghcr.io/sandudm/devops-cicd-monitoring:${{ env.TAG }}
             ghcr.io/sandudm/devops-cicd-monitoring:${{ github.sha }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.ref_name == 'develop'
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/sandudm/devops-cicd-monitoring:develop
+            docker rm -f app-staging || true
+            docker run -d --name app-staging --restart unless-stopped -p 3001:3000 ghcr.io/sandudm/devops-cicd-monitoring:develop
+
+      - name: Health check
+        run: curl --fail --retry 6 --retry-delay 5 --retry-connrefused http://${{ secrets.EC2_HOST }}:3001/live
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.ref_name == 'main'
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull ghcr.io/sandudm/devops-cicd-monitoring:latest
+            docker rm -f app-production || true
+            docker run -d --name app-production --restart unless-stopped -p 3000:3000 ghcr.io/sandudm/devops-cicd-monitoring:latest
+
+      - name: Health check
+        run: curl --fail --retry 6 --retry-delay 5 --retry-connrefused http://${{ secrets.EC2_HOST }}:3000/live
